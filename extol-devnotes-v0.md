@@ -1,4 +1,4 @@
-# Tahitian Tube Core Design Spec
+# Seeker Game Core Design Spec
 
 ## App overview
 MVP for an android application that will allow users to take advantage of a subset of Solana Seeker device features. It's a surfer game, with points gained by staying on the board. Users get max points by making it to the support boats, which is tied to the end of the primary gameplay video, below. Points are granted by time spent riding.
