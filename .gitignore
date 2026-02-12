@@ -1,0 +1,26 @@
+node_modules/
+.expo/
+android/
+ios/
+dist/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+web-build/
+.env
+.env.local
+
+# IDE
+.idea/
+
+# Android SDK artifacts (if locally installed)
+build-tools/
+emulator/
+platform-tools/
+platforms/
+system-images/
+licenses/
+.knownPackages
