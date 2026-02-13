@@ -1,5 +1,5 @@
 import React from "react";
-import { View, StyleSheet } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { Obstacle } from "../hooks/useObstacles";
 import { obstacleScreenPosition, OBSTACLE_FULL_SIZE } from "../constants/tubeGeometry";
 import { Colors } from "../constants/theme";
@@ -17,7 +17,35 @@ interface Props {
   obstacles: Obstacle[];
 }
 
+function LootItem({ obstacle }: { obstacle: Obstacle }) {
+  const { x, y, scale } = obstacleScreenPosition(obstacle.lane, obstacle.depth);
+  const fontSize = Math.max(8, 28 * scale);
+
+  if (fontSize < 6) return null;
+
+  return (
+    <Text
+      style={{
+        position: "absolute",
+        left: x - fontSize * 1.2,
+        top: y - fontSize * 0.6,
+        fontSize,
+        fontWeight: "bold",
+        color: Colors.neonGreen,
+        opacity: Math.min(1, obstacle.depth * 1.5),
+        textShadowColor: Colors.neonGreen,
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: fontSize * 0.4,
+      }}
+    >
+      {obstacle.loot}
+    </Text>
+  );
+}
+
 function ObstacleItem({ obstacle }: { obstacle: Obstacle }) {
+  if (obstacle.loot) return <LootItem obstacle={obstacle} />;
+
   const { x, y, scale } = obstacleScreenPosition(obstacle.lane, obstacle.depth);
   const size = OBSTACLE_FULL_SIZE * scale;
   const color = OBSTACLE_COLORS[obstacle.type % OBSTACLE_COLORS.length];

@@ -24,13 +24,15 @@ export function ScoreProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const commitRun = useCallback(() => {
-    setTotalScore((prev) => {
-      const next = prev + runScore;
-      if (walletKey) {
+    if (walletKey) {
+      // Wallet connected — accumulate and persist
+      setTotalScore((prev) => {
+        const next = prev + runScore;
         AsyncStorage.setItem(SCORE_KEY_PREFIX + walletKey, String(next)).catch(() => {});
-      }
-      return next;
-    });
+        return next;
+      });
+    }
+    // Always reset run score for next play
     setRunScore(0);
   }, [runScore, walletKey]);
 

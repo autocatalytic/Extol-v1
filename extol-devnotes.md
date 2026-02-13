@@ -1,141 +1,200 @@
-# Seeker Game Core Design Spec
+# Tahitian Tube — Game Design Spec (v1)
 
-## App overview
-MVP for an android game application that will attract players by linking points/scores with solana tokens (such as SKR) and take advantage of the Solana Seeker device features. We are iterating on the best format, starting with one version as a surfer game and another in a snowboard terrain park. The general idea is to have players go through levels of increasing difficulty, gaining points for not crashing. In the initial version we had points earned by not crashing (i.e. simply time riding) but we are transitioning to point rewards based on completing manouvers and point subtractions for crashing or hitting obstacles.
+## App Overview
+Android surfing game for the Solana Seeker device. Players ride through a tube wave, collecting loot numbers for points while dodging geometric obstacles. Built with Expo SDK 52 and React Native, targeting 60fps on the Seeker's MediaTek Dimensity 7300.
 
-One more general comment: I am looking for interesting ways to incorporate the wallet into the gameplay or scoreboard, and I want to push any online transactions to the end of the engagement loop. However if there are interesting suggestions for using the onboard seeker wallet please make them.
+Points link to a connected Solana wallet — logged-in players accumulate scores across sessions via AsyncStorage keyed to their wallet address. Future versions will connect points to on-chain token rewards (SKR).
 
-
-
-# User Experience
-The splash screen show large, pulsing text and display whle the app is loading, then fade out and cut to the homescreen when the app is ready. It is only 2 seconds or so.
-
-Upon app load, users arrive at the main screen, with a button saying Play. The hamburger button in the top left will also be displayed (see below).
-
-Eventually there will be multiple onboarding paths, but the current version will only have one: the primary gameplay window. 
-
-Primary gameplay will have the following behavior: 
-- Primary gameplay tab will display
-- Overlaid in the top right corner will be a points tracker, accumulating quickly with a scroll wheel visual. 
-- Points accumulate as the rider continues without crashing or colliding with obstacles, for a max of 15 seconds. 
-- Finish line: after 15 seconds the text "Solid!" displays as the rider crosses a threshold
-- After a small time interval the "Solid!" text fades out and is replaced with two buttons stacked above one another. The top one will have text "Drop Again?", and the lower one "Exit"
-- "Drop Again" will run the process again, adding on to points from the prior session.
-- "Exit" will take us to the main screen
-
-Score and Points
-- points should persist across sessions for logged in users (see below).
-- users not logged in will restart with zero points on pressing "Exit" button.
-
-There will be a hamburger button in the top left which opens a menu. Current points are displayed at the top, and below that the items displayed are conditional on whether the player has connected their wallet:
-- users with a connected wallet will see the SKR they have in the seeker wallet 
-- users who have not connected will see the "connect wallet" button. pressing it activates the connect wallet features.
-- users that connect their wallet are "logged in".
+### Seeker Device Features Used
+- **Accelerometer/gyroscope** — tilt-to-move controls via expo-sensors
+- **Haptic engine** — expo-haptics for loot collection (escalating by value), wipeout, and UI feedback
+- **Mobile Wallet Adapter 2.0** — wallet connect/authorize for identity and balance display
+- **Seed Vault** — biometric signing (future: on-chain transactions)
 
 
-## Seeker and Solana Mobile Stack Attributes to Features
-I don't have a business model yet. My app goals are above and rather than spend a lot of time thinking through how I can make money my main goals are to utilize interesting aspects of Seeker. These are not in order.
+## User Experience Flow
 
-- sign a transaction using the secure element, utilizing SKR
-- do something with the built-in gyroscope/accelerometer or gps
-- a lootbox or pachislot game aspect, using oxytocin loop or dopamine hits
+### Splash Screen (3 seconds)
+- Full-screen video background (Tahitian-splashScreen.mov) via expo-video
+- "Tahitian Tube" text centered, 30% transparent, pulsing neon cyan glow
+- Fades out after 3s, revealing the game screen
 
-And finally, a nice to have: something fun for the genesis NFT holders
+### Game Screen — Idle State
+- Static terrain background image
+- "Drop In" button centered
+- Hamburger menu (top-left) opens drawer with wallet/score info
 
+### Gameplay (30 seconds per run)
+- "Get Ready" countdown overlay (1.5s) — accelerometer calibrates to current hold position
+- Sprite appears at bottom-center of tube
+- Obstacles and loot numbers approach from the vanishing point
+- Score tracker visible top-right in neon gold
+- Run ends after 30 seconds → "Solid!" text (2s) → action buttons
 
+### Wipeout
+- Collision with obstacle triggers wipeout sprite animation (1.2s)
+- "Wipeout!" overlay text
+- Transitions directly to action buttons (skips "Solid!" text)
 
-# Game Play
+### End-of-Run Buttons
+- "Drop Again?" — commits score, recalibrates, starts new run
+- "Exit" — commits score, returns to idle state
 
-## General Plan
-sprite in foreground follows terrain loop video, obeying the laws of gravity and bouyancy
-sprite movement is right to left, but follows the terrain below
-movement is initiated with the phone accelerometer and gyroscope hardware
-finger gestures add stunts or jumps when combined with tilt logic for move action
-
-## Visual & Graphics Layer
-The Seeker features a powerful GPU capable of high-fidelity rendering.
-
-Enhanced Background: Use the new expo-video module. Unlike expo-av, it supports hardware-accelerated playback on Android 15, reducing CPU overhead during gameplay.
-
-Character Layer: To enhance performance and responsiveness of the app, the rider/sprite should be a separate layer. Feel free to make suggestions here, such as ways to enhance the UX with React Three Fiber (R3F) in a 3D model, or other approaches like a Canvas-based approach for 2D. I'm not determined to use 3D if it's too much work.
-
-## Sprite Movement Physics
-These are suggestions and may be altered if you think they can be improved.
-
-Tilt Logic & Calibration
-
-To account for different user holding positions (e.g., lying down vs. sitting up), we implement a Neutral Offset variable. 
-
-Suggested Physics Formula The final screen position $x_{pos}$ is calculated by:
-
-    $$x_{pos} = x_{center} + ((a_x - a_{offset}) \cdot \sigma)$$
-    
-Where:
-    $a_x$ is the raw X-axis data from the accelerometer.
-    $a_{offset}$ is the value captured during the Calibration Step.
-    $\sigma$ is the Sensitivity Multiplier (set as a constant or user-adjustable).
-
-Not sure we need this, but suggested calibration procedure:
-- Display a "Get Ready" overlay.
-- User holds the device in their preferred neutral position.
-- Capture $a_x$ and store it in a SharedValue or useRef.
-- Subtract this offset from all subsequent sensor readings to normalize "Center."
-
-Touch Interactivity
-
-We need occasional swipes to complement tilt. This allows the player to quickly move the character or trigger a "Speed Boost" using a swipe.
-
-One option for this would be to use React Native Gesture Handler for "Dashing."
-Swipe Detection: Utilize a FlingGestureHandler or PanGesture with a velocity threshold ($\approx 800\text{ units/s}$) to distinguish between accidental touches and intentional dashes.
-
-Input Priority: If a swipe is detected, it overrides the Tilt input for $300\text{ms}$ to ensure the dash feels responsive.
-
-Layering in Expo
-Here are a couple of suggestions to make the parallax effect visually interesting and smooth between the terrain and sprite assets:
-- Background Layer: Use expo-video with isLooping set to true and resizeMode="cover" to fill the screen.
-- Sprite Layer: Place the Sprite inside an Animated.View directly on top of the video.
-- "Gliding" Effect: When the user tilts Left, rotate the sprite -15deg and move it translateX: -100. When the user tilts Right, rotate +15deg and move translateX: +100.
-
-## Background
-Using the implementation specific gameplay below, the terrain should loop smoothly for 20 seconds. the rider follows the terrain surface.
+### Hamburger Menu (Drawer)
+- **Points display** — current total score
+- **Wallet section** (conditional):
+  - Not connected: "Connect Wallet" button → triggers MWA authorize (fresh auth each time, no cached tokens)
+  - Connected: wallet address, SOL balance, SKR balance, "Disconnect" button
 
 
-# Implementation Specific Iteration/Branch
+## Scoring System
 
-## Implementation Specific Gameplay
-Surfing game, with various obstacles to avoid while riding the wave. Eventually different levels will have increased difficulty but this iteration will have only one level, so we can focus on the core features: maneuvering, crashing, and dodging obstacles.
+### Loot Collection (primary scoring)
+- 40% of spawns are loot numbers instead of obstacles
+- Values: 100, 150, 200, 250, 300, 350, 400, 450, 500 (random)
+- Collecting: sprite collides with loot number → points added to run score
+- Collection effects:
+  - Spring scale burst with bouncy overshoot (damping 6, stiffness 300)
+  - Rapid rotation wiggle (±12° shake settling to 0)
+  - Glow throb (text shadow pulses outward)
+  - Value-scaled font size (42px for 100, up to 78px for 500)
+  - Color tier: green for ≤350, neon gold for ≥400
+  - Screen flash (intensity scales with value)
+  - Escalating haptics: Light (<250), Medium (250-399), Heavy (400+)
+  - Float-up fade-out over ~1.1s
 
-## Assets
-Sprite Riding Sheet: /Users/ken/Downloads/surfer-riding.png 
-Sprite Riding Sheet Map:
-| tucked right | resting right  | shredding right  |
-| tucked right | resting right  | shredding right  |
-| tucked left  | resting left   | shredding left   |
-
-Sprite Wipeouts: /Users/ken/Downloads/surfer-wipeout.png
-Sprite Recovering: /Users/ken/Downloads/surfer-recovery.png
-
-Terrain loop: /Users/ken/Downloads/Surfer_Sprite_and_Wave_Background.mp4
-Terrain loop reference still image: /Users/ken/Downloads/surf-terrain-ref-image.png
-Splash screen: "Neon Surfer"
-
-## Implementation Specific Wireframes, Screenshots and Mockups
-Let me know what details you require here.
-
-
-# Layout Specs
-Default style
-
-# Color palette
-Base on the palette in the implementation specific assets
-
-## Typography
-Default
-
-# Credits
-Gemini https://gemini.google.com/
-<a href="https://www.freepik.com/free-psd/stunning-aqua-splash-captivating-burst-water-droplets_408654745.htm">Image by tohamina on Freepik</a>
-SurfPics: https://x.com/surfgoldbeaches/status/2021343426965631143?s=20
+### Score Persistence
+- **Wallet connected**: total accumulates across runs, persisted to AsyncStorage keyed by wallet address
+- **No wallet**: run score resets to 0 between plays, no accumulation
+- Score tracker: neon gold (#FFD700), 48px font with glow, total shown below at 60% opacity
 
 
+## Sprite & Controls
 
+### Tilt Controls (Accelerometer)
+- expo-sensors at 16ms update interval (60Hz)
+- Calibration: captures neutral offset on "Get Ready"
+- Sensitivity multiplier: 3.5
+- **EMA smoothing**: alpha = 0.3 (blends toward raw value)
+- **Dead zone**: 0.03 (ignores micro-jitter below threshold)
+
+### Tube Arc (Bottom-Half Ellipse)
+The sprite rides along a curved arc representing the inside of a tube wave:
+
+```
+rise = ARC_CURVE_H × (1 - √(1 - t²))
+```
+
+Where `t` is the normalized tilt value (-1 to 1). This traces the bottom half of an ellipse — flat and controllable at center, curving up smoothly toward the tube walls.
+
+- `ARC_BASE_Y` = 78% of screen height (bottom of tube)
+- `ARC_HALF_WIDTH` = 42% of screen width (lateral range)
+- `ARC_CURVE_HEIGHT` = 45% of screen height (vertical range — sprite reaches ~1/3 from top at full tilt)
+- Sprite rotation: ±35° lean into the curve
+
+### Hop Mechanic (Upward Swipe)
+- Triggered by upward swipe (velocity threshold ~800 units/s)
+- 3-phase animation: up (250ms) → hold (200ms) → down (300ms) = 750ms total
+- 360° flip rotation over the full duration
+- Nested Animated.Views prevent transform conflicts between hop and tilt
+
+### Horizontal Dash (Left/Right Swipe)
+- ±120px lateral displacement over 300ms
+- Overrides tilt input during dash window
+
+
+## Obstacles & Loot
+
+### Obstacle Types
+4 geometric neon shapes: diamond, circle, square, triangle
+- Colors: neon cyan, neon pink, soft pink
+- Wireframe style with glow (border + shadow)
+
+### Loot Numbers
+- Rendered as bold text in neon green (#00DD44) with glow
+- Same perspective scaling as obstacles
+- Font size scales with depth (8px at vanishing point, 28px at sprite level)
+
+### Spawning
+- Interval: 800ms to 1800ms between spawns (random)
+- 9 lane positions: [-0.95, -0.8, -0.5, -0.2, 0, 0.2, 0.5, 0.8, 0.95]
+- 40% loot, 60% obstacles
+- Approach speed: 0.45 depth-units/second
+
+### Perspective & Depth
+- Vanishing point: screen center horizontally, 38% from top
+- Objects spawn at depth=0 (vanishing point, tiny) and approach to depth=1 (sprite level, full size)
+- Scale: quadratic (`depth²`) for natural perspective
+- Position: linear interpolation from vanishing point to tube surface arc position
+
+### Collision Detection
+- 1D comparison in tilt-space: `|spriteTilt - obstacleLane| < threshold`
+- Threshold: 0.2
+- Collision window: depth 0.95 to 1.0
+- Loot collision: collect (remove from scene, trigger effects)
+- Obstacle collision: wipeout (end run)
+
+
+## Sprite Sheets
+
+| Sheet | Source | Dimensions | Grid | Frame Size |
+|-------|--------|-----------|------|------------|
+| Riding | surfer-riding.png | 2048×2048 | 3×3 | 682×682 |
+| Wipeout | surfer-wipeout.png | 1024×1024 | 1×3 | 1024×341 |
+| Recovery | surfer-recovery.png | 2048×2048 | 2×3 | 1024×682 |
+
+- Height-based scaling for consistent character size across sheets
+- Fixed 180×180 display clip with center-crop for wider frames
+- Wipeout sprites appear at varied positions (collision location)
+
+
+## Technical Architecture
+
+### Key Files
+| File | Purpose |
+|------|---------|
+| `App.tsx` | Root — splash overlay, providers, navigation container |
+| `src/screens/GameScreen.tsx` | Game orchestrator — state overlays, loot effects, HUD |
+| `src/hooks/useGameLoop.ts` | State machine: idle → countdown → playing → finished/wiping_out |
+| `src/hooks/useAccelerometer.ts` | Tilt input with EMA smoothing, tube arc positioning |
+| `src/hooks/useSwipeGesture.ts` | Hop (upward swipe + flip) and dash (horizontal swipe) |
+| `src/hooks/useObstacles.ts` | Spawn, physics, collision — ref-based for React 18 compat |
+| `src/hooks/useScore.ts` | Score context — wallet-aware persistence via AsyncStorage |
+| `src/hooks/useMobileWallet.ts` | MWA 2.0 connect/authorize, balance fetching |
+| `src/constants/tubeGeometry.ts` | Arc math, obstacle positioning, collision formula |
+| `src/constants/theme.ts` | Colors (neon cyan/pink/green/gold), spacing, fonts, glow presets |
+| `src/components/Sprite.tsx` | Sprite sheet renderer with nested transform views |
+| `src/components/ObstacleLayer.tsx` | Renders obstacles (shapes) and loot (numbers) with perspective |
+| `src/components/PointsTracker.tsx` | Score HUD — neon gold with glow |
+| `src/navigation/DrawerContent.tsx` | Hamburger menu — wallet, scores, connect/disconnect |
+
+### Key Bug Patterns (Reference)
+- **React 18 setState timing**: functional updaters run during deferred render phase, not synchronously. Game physics/collision must use refs, not setState.
+- **Reanimated UI thread**: gesture callbacks run on UI thread. JS functions (Haptics, etc.) must use `runOnJS()` wrapper + `"worklet"` directive.
+- **Transform style conflicts**: multiple `transform` arrays in a style list — later silently overrides earlier. Fix: nested Animated.Views.
+
+### Build
+```bash
+export JAVA_HOME="/opt/homebrew/opt/openjdk@17"
+yarn install
+npx expo run:android
+```
+- No Expo Go (MWA requires native intents)
+- Android only
+- yarn, not npm
+- Polyfills load first (index.js)
+
+
+## Future Considerations
+- Multiple levels with increasing difficulty (more obstacles, faster speed, narrower lanes)
+- On-chain score submission / leaderboard
+- SKR token rewards tied to score milestones
+- Genesis NFT holder perks
+- Lootbox/pachislot mechanics at end of runs
+- Different terrain themes per level
+
+
+## Credits
+- Gemini https://gemini.google.com/
+- Image by tohamina on Freepik
+- SurfPics: https://x.com/surfgoldbeaches/status/2021343426965631143?s=20

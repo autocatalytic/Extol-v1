@@ -13,7 +13,7 @@ const APP_IDENTITY = {
   icon: "favicon.ico",
 };
 
-const AUTH_TOKEN_KEY = "mwa_auth_token";
+const AUTH_TOKEN_KEY = "mwa_auth_token"; // kept for cleanup of stale tokens
 
 interface WalletContextValue {
   connected: boolean;
@@ -85,13 +85,10 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const connect = useCallback(async () => {
     setConnecting(true);
     try {
-      const storedToken = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
-
       const result = await transact(async (wallet: Web3MobileWallet) => {
         const auth = await wallet.authorize({
           chain: "solana:mainnet",
           identity: APP_IDENTITY,
-          auth_token: storedToken ?? undefined,
         });
         return auth;
       });
@@ -107,7 +104,6 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
       if (result.auth_token) {
         setAuthToken(result.auth_token);
-        await AsyncStorage.setItem(AUTH_TOKEN_KEY, result.auth_token);
       }
 
       // Fetch balances after successful connect

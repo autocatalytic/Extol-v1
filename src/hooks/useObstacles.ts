@@ -13,17 +13,23 @@ export interface Obstacle {
   lane: number; // -1 to 1 position around the tube
   depth: number; // 0 (vanishing point) to 1+ (past sprite)
   type: number; // visual variant index
+  loot?: number; // if set, this is a collectible worth this many points
 }
 
 let nextId = 0;
 
-// Available lane positions — spread around the tube
-const LANES = [-0.8, -0.5, -0.2, 0, 0.2, 0.5, 0.8];
+// Available lane positions — spread around the tube, including high wall channels
+const LANES = [-0.95, -0.8, -0.5, -0.2, 0, 0.2, 0.5, 0.8, 0.95];
+
+// Loot values — 100 to 500 in increments of 50
+const LOOT_VALUES = [100, 150, 200, 250, 300, 350, 400, 450, 500];
+const LOOT_CHANCE = 0.4; // 40% of spawns are loot instead of obstacles
 
 export function useObstacles(
   gameState: GameState,
   tiltRef: MutableRefObject<number>,
   onCrash?: () => void,
+  onCollectLoot?: (value: number) => void,
 ) {
   const [obstacles, setObstacles] = useState<Obstacle[]>([]);
   // Imperative ref for physics — React 18 defers functional updaters,
@@ -33,9 +39,11 @@ export function useObstacles(
   const spawnTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTimeRef = useRef(0);
   const onCrashRef = useRef(onCrash);
+  const onCollectLootRef = useRef(onCollectLoot);
   const crashedThisCycleRef = useRef(false);
 
   onCrashRef.current = onCrash;
+  onCollectLootRef.current = onCollectLoot;
 
   const cleanup = useCallback(() => {
     if (frameRef.current) cancelAnimationFrame(frameRef.current);
@@ -47,7 +55,14 @@ export function useObstacles(
   const spawnObstacle = useCallback(() => {
     const lane = LANES[Math.floor(Math.random() * LANES.length)];
     const type = Math.floor(Math.random() * 4);
-    const newObs: Obstacle = { id: nextId++, lane, depth: 0, type };
+    const isLoot = Math.random() < LOOT_CHANCE;
+    const newObs: Obstacle = {
+      id: nextId++,
+      lane,
+      depth: 0,
+      type,
+      ...(isLoot && { loot: LOOT_VALUES[Math.floor(Math.random() * LOOT_VALUES.length)] }),
+    };
     obstaclesRef.current = [...obstaclesRef.current, newObs];
     setObstacles([...obstaclesRef.current]);
   }, []);
@@ -88,14 +103,21 @@ export function useObstacles(
 
       let hit = false;
       const updated: Obstacle[] = [];
+      const collectedLoot: number[] = [];
 
       for (const obs of obstaclesRef.current) {
         const newDepth = obs.depth + OBSTACLE_SPEED * dt;
 
         // Check collision at sprite depth
-        if (!hit && obs.depth < 1.0 && newDepth >= 0.95) {
+        if (obs.depth < 1.0 && newDepth >= 0.95) {
           if (checkCollision(tiltRef.current, obs.lane)) {
-            hit = true;
+            if (obs.loot) {
+              // Loot — collect it (don't add to updated list)
+              collectedLoot.push(obs.loot);
+              continue;
+            } else if (!hit) {
+              hit = true;
+            }
           }
         }
 
@@ -107,6 +129,11 @@ export function useObstacles(
       // Write to ref (synchronous, for next tick) and state (for render)
       obstaclesRef.current = updated;
       setObstacles(updated);
+
+      // Fire loot collection callbacks (haptics handled by caller)
+      for (const value of collectedLoot) {
+        onCollectLootRef.current?.(value);
+      }
 
       if (hit) {
         crashedThisCycleRef.current = true;

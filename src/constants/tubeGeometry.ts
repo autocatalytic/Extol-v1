@@ -11,10 +11,13 @@ export const VANISHING_POINT = {
 // Tube arc at sprite depth — the curve the sprite rides along
 const ARC_BASE_Y = SCREEN_H * 0.78; // bottom of tube where sprite sits when centered
 const ARC_HALF_WIDTH = SCREEN_W * 0.42; // how far left/right the sprite can go
-const ARC_CURVE_HEIGHT = SCREEN_H * 0.22; // how high sprite climbs when at tube walls
+const ARC_CURVE_HEIGHT = SCREEN_H * 0.45; // how high sprite climbs — reaches ~1/3 from top at full tilt
 
 /**
  * Map a tilt value (-1 to 1) to a position on the tube surface arc.
+ * Uses a bottom-half ellipse curve so the sprite stays low at gentle tilts
+ * and curves up smoothly toward the tube walls — like tracing a capital O.
+ *
  * t = 0: bottom center of tube
  * t = -1: left wall, t = 1: right wall
  */
@@ -24,12 +27,13 @@ export function tiltToTubePosition(t: number) {
   // x follows linear mapping
   const x = VANISHING_POINT.x + clamped * ARC_HALF_WIDTH;
 
-  // y follows a cosine curve — rises toward tube walls
-  const rise = ARC_CURVE_HEIGHT * (1 - Math.cos(clamped * Math.PI)) / 2;
+  // y follows bottom-half ellipse — flat at center, curves up toward the walls
+  const absT = Math.abs(clamped);
+  const rise = ARC_CURVE_HEIGHT * (1 - Math.sqrt(1 - absT * absT));
   const y = ARC_BASE_Y - rise;
 
-  // rotation: sprite leans into the curve (tangent angle)
-  const rotation = clamped * 35; // degrees — lean into the wall
+  // rotation: sprite leans into the curve
+  const rotation = clamped * 35;
 
   return { x, y, rotation };
 }

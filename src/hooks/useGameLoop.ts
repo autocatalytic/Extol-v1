@@ -9,7 +9,7 @@ export type GameState =
   | "finished";
 
 const COUNTDOWN_MS = 1500;
-const RUN_DURATION_MS = 15000;
+const RUN_DURATION_MS = 30000;
 const WIPEOUT_MS = 1200;
 const RECOVERY_MS = 1000;
 

@@ -47,14 +47,16 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   points: {
-    color: Colors.neonCyan,
-    fontSize: FontSize.xl,
+    color: Colors.neonGold,
+    fontSize: FontSize.xxl,
     fontWeight: "bold",
-    ...NeonGlow.cyan,
+    ...NeonGlow.gold,
   },
   total: {
-    color: Colors.whiteAlpha70,
-    fontSize: FontSize.sm,
+    color: Colors.neonGold,
+    fontSize: FontSize.md,
+    opacity: 0.6,
     marginTop: Spacing.xs,
+    ...NeonGlow.gold,
   },
 });

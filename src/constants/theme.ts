@@ -3,6 +3,8 @@ export const Colors = {
   neonCyan: "#00FFFF",
   neonPink: "#FF00FF",
   neonPinkSoft: "#FF66FF",
+  neonGreen: "#00DD44",
+  neonGold: "#FFD700",
   white: "#FFFFFF",
   whiteAlpha70: "rgba(255,255,255,0.7)",
   whiteAlpha50: "rgba(255,255,255,0.5)",
@@ -36,6 +38,11 @@ export const NeonGlow = {
   },
   pink: {
     textShadowColor: Colors.neonPink,
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 20,
+  },
+  gold: {
+    textShadowColor: Colors.neonGold,
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 20,
   },
