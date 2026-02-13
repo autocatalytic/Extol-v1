@@ -4,6 +4,7 @@ import { Accelerometer } from "expo-sensors";
 import {
   useSharedValue,
   useAnimatedStyle,
+  SharedValue,
 } from "react-native-reanimated";
 import { GameState } from "./useGameLoop";
 
@@ -18,7 +19,7 @@ const ARC_BASE_Y = SH * 0.78;
 const ARC_HALF_W = SW * 0.42;
 const ARC_CURVE_H = SH * 0.22;
 
-export function useAccelerometer(gameState: GameState) {
+export function useAccelerometer(gameState: GameState, flipRotation?: SharedValue<number>) {
   const offsetRef = useRef(0);
   const tiltValue = useSharedValue(0);
   const tiltRef = useRef(0);
@@ -64,12 +65,13 @@ export function useAccelerometer(gameState: GameState) {
     const posX = VP_X + t * ARC_HALF_W;
     const rise = ARC_CURVE_H * (1 - Math.cos(t * Math.PI)) / 2;
     const posY = ARC_BASE_Y - rise;
-    const rotation = t * 35;
+    const tiltDeg = t * 35;
+    const flipDeg = flipRotation ? flipRotation.value : 0;
 
     return {
       left: posX - SPRITE_SIZE / 2,
       top: posY - SPRITE_SIZE / 2,
-      transform: [{ rotate: `${rotation}deg` }],
+      transform: [{ rotate: `${tiltDeg + flipDeg}deg` }],
     };
   });
 

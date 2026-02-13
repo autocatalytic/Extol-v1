@@ -26,6 +26,9 @@ export function useObstacles(
   onCrash?: () => void,
 ) {
   const [obstacles, setObstacles] = useState<Obstacle[]>([]);
+  // Imperative ref for physics — React 18 defers functional updaters,
+  // so collision checks must read from a ref, not inside setState.
+  const obstaclesRef = useRef<Obstacle[]>([]);
   const frameRef = useRef<ReturnType<typeof requestAnimationFrame> | null>(null);
   const spawnTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTimeRef = useRef(0);
@@ -44,7 +47,9 @@ export function useObstacles(
   const spawnObstacle = useCallback(() => {
     const lane = LANES[Math.floor(Math.random() * LANES.length)];
     const type = Math.floor(Math.random() * 4);
-    setObstacles((prev) => [...prev, { id: nextId++, lane, depth: 0, type }]);
+    const newObs: Obstacle = { id: nextId++, lane, depth: 0, type };
+    obstaclesRef.current = [...obstaclesRef.current, newObs];
+    setObstacles([...obstaclesRef.current]);
   }, []);
 
   const scheduleSpawn = useCallback(() => {
@@ -59,6 +64,7 @@ export function useObstacles(
     if (gameState !== "playing") {
       cleanup();
       if (gameState === "idle" || gameState === "countdown") {
+        obstaclesRef.current = [];
         setObstacles([]);
       }
       crashedThisCycleRef.current = false;
@@ -72,7 +78,7 @@ export function useObstacles(
     spawnObstacle();
     scheduleSpawn();
 
-    // Animation loop — advance depths
+    // Animation loop — advance depths and check collisions on the ref
     const tick = () => {
       if (crashedThisCycleRef.current) return;
 
@@ -81,25 +87,26 @@ export function useObstacles(
       lastTimeRef.current = now;
 
       let hit = false;
+      const updated: Obstacle[] = [];
 
-      setObstacles((prev) => {
-        const updated: Obstacle[] = [];
-        for (const obs of prev) {
-          const newDepth = obs.depth + OBSTACLE_SPEED * dt;
+      for (const obs of obstaclesRef.current) {
+        const newDepth = obs.depth + OBSTACLE_SPEED * dt;
 
-          // Check collision at sprite depth
-          if (!hit && obs.depth < 1.0 && newDepth >= 0.95) {
-            if (checkCollision(tiltRef.current, obs.lane)) {
-              hit = true;
-            }
-          }
-
-          if (newDepth < 1.3) {
-            updated.push({ ...obs, depth: newDepth });
+        // Check collision at sprite depth
+        if (!hit && obs.depth < 1.0 && newDepth >= 0.95) {
+          if (checkCollision(tiltRef.current, obs.lane)) {
+            hit = true;
           }
         }
-        return updated;
-      });
+
+        if (newDepth < 1.3) {
+          updated.push({ ...obs, depth: newDepth });
+        }
+      }
+
+      // Write to ref (synchronous, for next tick) and state (for render)
+      obstaclesRef.current = updated;
+      setObstacles(updated);
 
       if (hit) {
         crashedThisCycleRef.current = true;

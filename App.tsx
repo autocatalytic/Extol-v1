@@ -9,18 +9,25 @@ import Animated, {
   Easing,
   runOnJS,
 } from "react-native-reanimated";
+import { useVideoPlayer, VideoView } from "expo-video";
 import { NavigationContainer } from "@react-navigation/native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import AppNavigator from "./src/navigation/AppNavigator";
 import { ScoreProvider } from "./src/hooks/useScore";
 import { WalletProvider } from "./src/hooks/useMobileWallet";
 import { Colors, FontSize } from "./src/constants/theme";
+import { SPLASH_VIDEO } from "./src/assets";
 
-const SPLASH_DURATION = 2000;
+const SPLASH_DURATION = 3000;
 
 function SplashOverlay({ onDone }: { onDone: () => void }) {
   const opacity = useSharedValue(1);
   const glowIntensity = useSharedValue(0.5);
+
+  const player = useVideoPlayer(SPLASH_VIDEO, (p) => {
+    p.loop = false;
+    p.play();
+  });
 
   useEffect(() => {
     glowIntensity.value = withRepeat(
@@ -51,8 +58,14 @@ function SplashOverlay({ onDone }: { onDone: () => void }) {
 
   return (
     <Animated.View style={[styles.splash, containerStyle]}>
+      <VideoView
+        player={player}
+        style={StyleSheet.absoluteFill}
+        nativeControls={false}
+        contentFit="cover"
+      />
       <Animated.Text style={[styles.splashText, styles.splashGlow, textStyle]}>
-        Neon Surfer
+        Tahitian Tube
       </Animated.Text>
     </Animated.View>
   );
@@ -92,6 +105,7 @@ const styles = StyleSheet.create({
     color: Colors.neonCyan,
     fontSize: FontSize.splash,
     fontWeight: "bold",
+    opacity: 0.7,
   },
   splashGlow: {
     textShadowColor: Colors.neonCyan,

@@ -56,7 +56,7 @@ export function obstacleScreenPosition(lane: number, depth: number) {
  * Check if sprite and obstacle are colliding.
  * Both positions expressed as tilt values (-1 to 1).
  */
-export function checkCollision(spriteTilt: number, obstacleLane: number, threshold = 0.35) {
+export function checkCollision(spriteTilt: number, obstacleLane: number, threshold = 0.2) {
   return Math.abs(spriteTilt - obstacleLane) < threshold;
 }
 

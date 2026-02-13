@@ -7,6 +7,9 @@ export const RECOVERY_SHEET = require("./surfer-recovery.png");
 export const TERRAIN_VIDEO = require("./Surfer_Sprite_and_Wave_Background.mp4");
 export const TERRAIN_REF = require("./surf-terrain-ref-image-portrait.png");
 
+// Splash
+export const SPLASH_VIDEO = require("./Tahitian-splashScreen.mov");
+
 // Sprite sheet dimensions
 export const RIDING_SHEET_SIZE = { width: 2048, height: 2048, cols: 3, rows: 3 };
 export const WIPEOUT_SHEET_SIZE = { width: 1024, height: 1024, cols: 1, rows: 3 };

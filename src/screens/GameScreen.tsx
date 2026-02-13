@@ -1,6 +1,6 @@
 import React, { useCallback, useState, useEffect } from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { DrawerActions, useNavigation } from "@react-navigation/native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { Colors, FontSize, NeonGlow, Spacing } from "../constants/theme";
@@ -19,29 +19,34 @@ type FinishPhase = "none" | "solid" | "buttons";
 
 export default function GameScreen() {
   const navigation = useNavigation<any>();
-  const { gameState, startGame, resetGame, triggerWipeout, timeLeft } = useGameLoop();
+  const { gameState, startGame, resetGame, triggerWipeout, wasWipeout, timeLeft } = useGameLoop();
   const { runScore, totalScore, addPoints, commitRun } = useScore();
   const { sheet, frame } = useSpriteAnimation(gameState);
-  const { animatedStyle: tiltStyle, calibrate, tiltRef } = useAccelerometer(gameState);
-  const { gestureHandler, dashStyle } = useSwipeGesture(gameState);
+  const { gestureHandler, dashStyle, flipRotation } = useSwipeGesture(gameState);
+  const { animatedStyle: tiltStyle, calibrate, tiltRef } = useAccelerometer(gameState, flipRotation);
   const { obstacles } = useObstacles(gameState, tiltRef, triggerWipeout);
   const [finishPhase, setFinishPhase] = useState<FinishPhase>("none");
 
-  // Sequence: finished → show "Solid!" → fade → show buttons
+  // Sequence: finished → show "Solid!" (or skip after wipeout) → show buttons
   useEffect(() => {
     if (gameState === "finished") {
-      setFinishPhase("solid");
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-      const timer = setTimeout(() => {
+      if (wasWipeout) {
+        // Wipeout already showed its text — go straight to buttons
         setFinishPhase("buttons");
-      }, 2000);
+      } else {
+        setFinishPhase("solid");
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-      return () => clearTimeout(timer);
+        const timer = setTimeout(() => {
+          setFinishPhase("buttons");
+        }, 2000);
+
+        return () => clearTimeout(timer);
+      }
     } else {
       setFinishPhase("none");
     }
-  }, [gameState]);
+  }, [gameState, wasWipeout]);
 
   const handleStart = useCallback(() => {
     calibrate();
@@ -57,8 +62,8 @@ export default function GameScreen() {
 
   const handleExit = useCallback(() => {
     commitRun();
-    navigation.navigate("Home");
-  }, [commitRun, navigation]);
+    resetGame();
+  }, [commitRun, resetGame]);
 
   // Points accumulate during playing
   useEffect(() => {
@@ -70,6 +75,17 @@ export default function GameScreen() {
   return (
     <View style={styles.container}>
       <TerrainBackground />
+
+      {/* Hamburger menu — visible when not in active gameplay */}
+      {(gameState === "idle" || finishPhase === "buttons") && (
+        <Pressable
+          style={styles.hamburger}
+          onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+          hitSlop={16}
+        >
+          <Text style={styles.hamburgerText}>☰</Text>
+        </Pressable>
+      )}
 
       {/* Obstacle layer — behind sprite, on top of background */}
       <ObstacleLayer obstacles={obstacles} />
@@ -85,8 +101,8 @@ export default function GameScreen() {
         />
       )}
 
-      {/* HUD — visible during play and wipeout/recovery (frozen) */}
-      {(gameState === "playing" || gameState === "wiping_out" || gameState === "recovering" || gameState === "finished") && (
+      {/* HUD — visible during play and wipeout (frozen) */}
+      {(gameState === "playing" || gameState === "wiping_out" || gameState === "finished") && (
         <PointsTracker points={runScore} total={totalScore} />
       )}
 
@@ -161,6 +177,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  hamburger: {
+    position: "absolute",
+    top: Spacing.xxl,
+    left: Spacing.lg,
+    zIndex: 30,
+  },
+  hamburgerText: {
+    color: Colors.neonCyan,
+    fontSize: FontSize.xl,
+    ...NeonGlow.cyan,
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,

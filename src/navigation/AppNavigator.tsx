@@ -1,6 +1,5 @@
 import React from "react";
 import { createDrawerNavigator } from "@react-navigation/drawer";
-import HomeScreen from "../screens/HomeScreen";
 import GameScreen from "../screens/GameScreen";
 import DrawerContent from "./DrawerContent";
 import { Colors } from "../constants/theme";
@@ -17,7 +16,6 @@ export default function AppNavigator() {
         sceneStyle: { backgroundColor: Colors.background },
       }}
     >
-      <Drawer.Screen name="Home" component={HomeScreen} />
       <Drawer.Screen
         name="Game"
         component={GameScreen}

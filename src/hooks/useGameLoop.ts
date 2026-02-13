@@ -16,6 +16,7 @@ const RECOVERY_MS = 1000;
 export function useGameLoop() {
   const [gameState, setGameState] = useState<GameState>("idle");
   const [timeLeft, setTimeLeft] = useState(RUN_DURATION_MS);
+  const [wasWipeout, setWasWipeout] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const countdownRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wipeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -52,6 +53,7 @@ export function useGameLoop() {
 
   const startGame = useCallback(() => {
     clearTimers();
+    setWasWipeout(false);
     setGameState("countdown");
     setTimeLeft(RUN_DURATION_MS);
     remainingRef.current = RUN_DURATION_MS;
@@ -63,30 +65,25 @@ export function useGameLoop() {
   }, [clearTimers, startPlaying]);
 
   const triggerWipeout = useCallback(() => {
-    // Pause the run timer
-    if (timerRef.current) clearInterval(timerRef.current);
-    timerRef.current = null;
-
+    // Stop the run timer — wipeout ends the run
+    clearTimers();
+    setWasWipeout(true);
     setGameState("wiping_out");
 
+    // Show wipeout animation, then transition to finished (buttons)
     wipeoutRef.current = setTimeout(() => {
-      setGameState("recovering");
-
-      wipeoutRef.current = setTimeout(() => {
-        // Resume playing with remaining time
-        setGameState("playing");
-        startPlaying(remainingRef.current);
-      }, RECOVERY_MS);
+      setGameState("finished");
     }, WIPEOUT_MS);
-  }, [startPlaying]);
+  }, [clearTimers]);
 
   const resetGame = useCallback(() => {
     clearTimers();
+    setWasWipeout(false);
     setGameState("idle");
     setTimeLeft(RUN_DURATION_MS);
   }, [clearTimers]);
 
   useEffect(() => clearTimers, [clearTimers]);
 
-  return { gameState, timeLeft, startGame, resetGame, triggerWipeout };
+  return { gameState, timeLeft, startGame, resetGame, triggerWipeout, wasWipeout };
 }
