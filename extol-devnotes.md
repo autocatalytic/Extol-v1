@@ -97,21 +97,30 @@ Here are a couple of suggestions to make the parallax effect visually interestin
 - "Gliding" Effect: When the user tilts Left, rotate the sprite -15deg and move it translateX: -100. When the user tilts Right, rotate +15deg and move translateX: +100.
 
 ## Background
-
+Using the implementation specific gameplay below, the terrain should loop smoothly for 20 seconds. the rider follows the terrain surface.
 
 
 # Implementation Specific Iteration/Branch
 
-## Assets
-Sprite: 
-Background loop: 
-Splash screen: 
-
-
 ## Implementation Specific Gameplay
+Surfing game, with various obstacles to avoid while riding the wave. Eventually different levels will have increased difficulty but this iteration will have only one level, so we can focus on the core features: maneuvering, crashing, and dodging obstacles.
+
+## Assets
+Sprite Riding Sheet: /Users/ken/Downloads/surfer-riding.png 
+Sprite Riding Sheet Map:
+| tucked right | resting right  | shredding right  |
+| tucked right | resting right  | shredding right  |
+| tucked left  | resting left   | shredding left   |
+
+Sprite Wipeouts: /Users/ken/Downloads/surfer-wipeout.png
+Sprite Recovering: /Users/ken/Downloads/surfer-recovery.png
+
+Terrain loop: /Users/ken/Downloads/Surfer_Sprite_and_Wave_Background.mp4
+Terrain loop reference still image: /Users/ken/Downloads/surf-terrain-ref-image.png
+Splash screen: "Neon Surfer"
 
 ## Implementation Specific Wireframes, Screenshots and Mockups
-
+Let me know what details you require here.
 
 
 # Layout Specs
